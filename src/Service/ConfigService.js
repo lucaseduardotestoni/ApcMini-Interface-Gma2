@@ -43,4 +43,40 @@ export default class ConfigService {
     if (!res.ok) throw new Error('Erro ao carregar botão');
     return await res.json();
   }
+
+  static async saveFaderConfig(faderAlterado) {
+    // 1) Busca todos os faders atuais
+    const config = await ConfigService.getConfig();
+    let faders = Array.isArray(config?.controls?.faders)
+      ? [...config.controls.faders]
+      : [];
+
+    // 2) Atualiza ou adiciona o fader alterado
+    const idx = faders.findIndex(f => f.notation === faderAlterado.notation);
+    if (idx !== -1) {
+      faders[idx] = faderAlterado;
+    } else {
+      faders.push(faderAlterado);
+    }
+    console.log('Faders atualizados:', faders);
+
+    // 3) Envia o array completo para o backend
+    const res = await fetch('http://localhost:3001/api/faders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ faders })
+    });
+    const json = await res.json();
+    console.log('Resposta do backend:', json);
+    console.log('Status da resposta:', res.ok);
+    if (!res.ok) throw new Error('Erro ao salvar faders');
+    return json;
+  }
+
+    static async getFader(notation) {
+    const res = await fetch(`http://localhost:3001/api/fader/${notation}`);
+    console.log('Carregando botão:', res.ok);
+    if (!res.ok) throw new Error('Erro ao carregar botão');
+    return await res.json();
+  }
 }

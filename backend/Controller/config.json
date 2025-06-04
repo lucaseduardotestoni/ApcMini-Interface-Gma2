@@ -4,9 +4,9 @@
     "buttons": [
       {
         "notation": 5,
-        "executor": "101",
-        "type": "0",
-        "page": "0",
+        "executor": "102",
+        "type": "2",
+        "page": "5",
         "color": 6,
         "colorName": "Red"
       },
@@ -15,10 +15,16 @@
         "executor": "101",
         "type": "0",
         "page": "0",
-        "color": 10,
-        "colorName": "Yellow"
+        "color": 2,
+        "colorName": "Green"
       }
     ],
-    "faders": []
+    "faders": [
+      {
+        "index": 48,
+        "executor": "2",
+        "page": 1
+      }
+    ]
   }
 }

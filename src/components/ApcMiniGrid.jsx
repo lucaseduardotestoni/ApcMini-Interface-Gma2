@@ -89,31 +89,37 @@ export default function ApcMiniGrid({ buttonLabels }) {
       })}
 
       <div className="knobs-row">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <div
-            key={index}
-            className="knob-container"
-            onClick={() => setEditingKnob(index)}
-          >
-            <div className="knob"></div>
-          </div>
-        ))}
+        {Array.from({ length: 8 }).map((_, i) => {
+          const knobIndex = 64 + i;
+          return (
+            <div
+              key={knobIndex}
+              className="knob-container"
+              onClick={() => setEditingKnob(knobIndex)}
+            >
+              <div className="knob"></div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="fader-row">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <div
-            key={index}
-            className="fader"
-            data-index={`F${index}`}
-            onClick={() => setEditingFader(index)}
-          >
-            <div className="fader-track">
-              <div className="fader-thumb"></div>
+        {Array.from({ length: 8 }).map((_, i) => {
+          const faderIndex = 48 + i;
+          return (
+            <div
+              key={faderIndex}
+              className="fader"
+              data-index={`F${faderIndex}`}
+              onClick={() => setEditingFader(faderIndex)}
+            >
+              <div className="fader-track">
+                <div className="fader-thumb"></div>
+              </div>
+              F{faderIndex}
             </div>
-            F{index}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="control-buttons-row">

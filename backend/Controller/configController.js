@@ -110,6 +110,7 @@ export default (app) => {
   // POST para adicionar/atualizar apenas os faders
   app.post('/api/faders', (req, res) => {
     const { faders } = req.body;
+    console.log('Recebido no /api/buttons:', faders);
     if (!Array.isArray(faders)) {
       return res.status(400).json({ message: 'Formato inválido para faders' });
     }
@@ -141,5 +142,26 @@ export default (app) => {
       });
     }
     res.json(button);
+  });
+
+  // GET para obter informações de um fader pelo index
+  app.get('/api/fader/:index', (req, res) => {
+    const index = parseInt(req.params.index, 10);
+    if (isNaN(index)) {
+      return res.status(400).json({ message: 'Index inválido' });
+    }
+    const current = readConfig();
+    const fader = Array.isArray(current?.controls?.faders)
+      ? current.controls.faders.find(f => f.index === index)
+      : undefined;
+    if (!fader) {
+      // Retorna um objeto padrão ao invés de 404
+      return res.json({
+        index,
+        executor: '1',
+        page: 0
+      });
+    }
+    res.json(fader);
   });
 };
