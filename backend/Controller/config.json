@@ -1,0 +1,24 @@
+{
+  "credentials": {},
+  "controls": {
+    "buttons": [
+      {
+        "notation": 5,
+        "executor": "101",
+        "type": "0",
+        "page": "0",
+        "color": 6,
+        "colorName": "Red"
+      },
+      {
+        "notation": 6,
+        "executor": "101",
+        "type": "0",
+        "page": "0",
+        "color": 10,
+        "colorName": "Yellow"
+      }
+    ],
+    "faders": []
+  }
+}
