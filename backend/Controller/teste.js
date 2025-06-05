@@ -7,7 +7,7 @@ try {
   controller.carregarBanco();
 
   // Por exemplo, acender o LED da nota 60 com fallback 1
-  controller.setLed(60, 1);
+  //controller.setLed(51, 5);
 
 } catch (error) {
   console.error('Erro:', error.message);
