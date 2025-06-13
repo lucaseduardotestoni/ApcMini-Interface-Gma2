@@ -1,4 +1,3 @@
-// controller/buttonController.js
 import express from 'express';
 import { readConfig, writeConfig } from '../Model/configModel.js';
 

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Controlador para MaController</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #282c34; color: #abb2bf; display: flex; justify-content: center; align-items: flex-start; gap: 20px; padding: 20px; }
+        .container { background-color: #353a42; padding: 20px; border-radius: 8px; }
+        h1, h2 { color: #61afef; border-bottom: 2px solid #61afef; padding-bottom: 10px; margin-top: 0; }
+        .status-box { padding: 10px; border-radius: 5px; margin-bottom: 15px; text-align: center; font-weight: bold; }
+        .connected { background-color: #98c379; color: #282c34; }
+        .disconnected { background-color: #e06c75; color: #282c34; }
+        
+        .controller-grid { display: grid; grid-template-columns: repeat(8, 60px); gap: 5px; }
+        .controller-grid button { width: 60px; height: 40px; border: 1px solid #4f5663; background-color: #2c313a; color: white; cursor: pointer; border-radius: 4px; font-size: 10px; transition: background-color 0.2s; }
+        .controller-grid button:hover { background-color: #4b515d; }
+        .controller-grid button.led-green { background-color: #2a8845; }
+        .controller-grid button.led-red { background-color: #a73434; }
+
+        .faders, .special-buttons { margin-top: 20px; }
+        .fader-group { margin-bottom: 10px; }
+        label { font-size: 12px; display: block; margin-bottom: 4px; }
+        input[type="range"] { width: 100%; }
+        
+        #log-container { min-width: 400px; }
+        #log-area { background-color: #21252b; color: #abb2bf; height: 500px; overflow-y: scroll; padding: 10px; border-radius: 5px; font-family: "Courier New", Courier, monospace; font-size: 14px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Simulador de Controle</h2>
+        <div id="status" class="status-box disconnected">Desconectado</div>
+
+        <div id="button-grid" class="controller-grid"></div>
+
+        <div class="special-buttons">
+            <h2>Especiais</h2>
+            <button id="blackout-btn">Blackout</button>
+            <div>
+                <label>Página:</label>
+                <button class="page-btn" data-page="0">1</button>
+                <button class="page-btn" data-page="1">2</button>
+                <button class="page-btn" data-page="2">3</button>
+            </div>
+        </div>
+
+        <div class="faders">
+            <h2>Faders</h2>
+            <div class="fader-group">
+                <label for="fader-1">Fader 1 (Exec 201)</label>
+                <input type="range" class="fader-input" id="fader-1" min="0" max="127" value="0" data-executor="201">
+            </div>
+            <div class="fader-group">
+                <label for="fader-2">Fader 2 (Exec 202)</label>
+                <input type="range" class="fader-input" id="fader-2" min="0" max="127" value="0" data-executor="202">
+            </div>
+        </div>
+    </div>
+
+    <div id="log-container" class="container">
+        <h2>Log de Mensagens</h2>
+        <div id="log-area"></div>
+    </div>
+
+    <script type="module">
+        import MaController from './MaController.js';
+
+        // --- ELEMENTOS DO DOM ---
+        const statusDiv = document.getElementById('status');
+        const logArea = document.getElementById('log-area');
+        const grid = document.getElementById('button-grid');
+
+        // --- INICIALIZAÇÃO DO MACONTROLLER ---
+        const apcMini = new MaController({ websocketURL: 'ws://localhost:80/' });
+
+        let currentPage = 0;
+
+        // --- FUNÇÕES DE LOG ---
+        const logMessage = (message, type = 'info') => {
+            logArea.innerHTML += `[${type.toUpperCase()}]: ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+        };
+
+        // --- GERAR A GRADE DE BOTÕES DINAMICAMENTE ---
+        for (let i = 0; i < 64; i++) {
+            const button = document.createElement('button');
+            const executor = 101 + i;
+            button.dataset.executor = executor;
+            button.textContent = `E${executor}`;
+            grid.appendChild(button);
+        }
+        
+        // --- LÓGICA DE TESTE ---
+
+        // 1. Teste de `sendPlaybackButton`
+        grid.addEventListener('mousedown', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const executor = parseInt(e.target.dataset.executor, 10);
+                logMessage(`Enviando Playback ON (Exec: ${executor}, Page: ${currentPage})`, 'send');
+                apcMini.sendPlaybackButton(executor, currentPage, 1, true);
+            }
+        });
+        grid.addEventListener('mouseup', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const executor = parseInt(e.target.dataset.executor, 10);
+                logMessage(`Enviando Playback OFF (Exec: ${executor}, Page: ${currentPage})`, 'send');
+                apcMini.sendPlaybackButton(executor, currentPage, 1, false);
+            }
+        });
+
+        // 2. Teste de `sendFader`
+        document.querySelectorAll('.fader-input').forEach(fader => {
+            fader.addEventListener('input', (e) => {
+                const executor = parseInt(e.target.dataset.executor, 10);
+                const value = parseInt(e.target.value, 10) / 127;
+                logMessage(`Enviando Fader (Exec: ${executor}, Page: ${currentPage}, Value: ${value.toFixed(2)})`, 'send');
+                apcMini.sendFader(executor, currentPage, value);
+            });
+        });
+
+        // 3. Teste de `sendCommand` (Blackout)
+        const blackoutBtn = document.getElementById('blackout-btn');
+        blackoutBtn.addEventListener('mousedown', () => {
+             logMessage('Enviando Comando: Blackout ON', 'send');
+             apcMini.sendCommand('SpecialMaster 2.1 At 0');
+        });
+        blackoutBtn.addEventListener('mouseup', () => {
+             logMessage('Enviando Comando: Blackout OFF', 'send');
+             apcMini.sendCommand('SpecialMaster 2.1 At 100');
+        });
+        
+        // 4. Teste de mudança de página
+        document.querySelectorAll('.page-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const newPage = parseInt(e.target.dataset.page, 10);
+                apcMini.pageIndex = newPage;
+                apcMini.pageIndex2 = newPage;
+                currentPage = newPage;
+                logMessage(`Página alterada para: ${currentPage}`, 'status');
+            });
+        });
+        
+        // --- FEEDBACK DO WEBSOCKET ---
+        apcMini.on('connected', () => {
+            statusDiv.textContent = 'Conectado';
+            statusDiv.className = 'status-box connected';
+        });
+
+        apcMini.on('disconnected', () => {
+            statusDiv.textContent = 'Desconectado';
+            statusDiv.className = 'status-box disconnected';
+        });
+        
+        apcMini.on('message', msg => {
+            // Filtra mensagens de playback para não poluir o log
+            if(msg.responseType !== "playbacks") {
+                logMessage(JSON.stringify(msg), 'received');
+            }
+        });
+
+        apcMini.on('ledUpdate', (msg) => {
+            if (!msg.itemGroups) return;
+            const items = msg.itemGroups[0]?.items?.flat();
+            if (!items) return;
+
+            items.forEach((item, index) => {
+                const executor = 101 + index;
+                const button = grid.querySelector(`[data-executor='${executor}']`);
+                if(button) {
+                    button.classList.remove('led-green', 'led-red');
+                    if (item.isRun) {
+                        button.classList.add('led-green');
+                    } else if (item.i?.c && item.i.c !== '#000000') {
+                        button.classList.add('led-red');
+                    }
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
