@@ -1,17 +1,19 @@
+// backend/server.js
 import express from 'express';
+import registerRoutes from './routes.js';
 import cors from 'cors';
-import configRoutes from './Controller/configController.js';
 
 const app = express();
 const PORT = 3001;
 
-app.use(cors());
+// Middleware para interpretar JSON no corpo da requisição
 app.use(express.json());
+app.use(cors()); // Permite todas as origens por padrão
 
-// Rotas da API
-configRoutes(app);
+// Registro das rotas
+registerRoutes(app);
 
-// Inicia servidor
+// Inicia o servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor backend rodando em http://localhost:${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });

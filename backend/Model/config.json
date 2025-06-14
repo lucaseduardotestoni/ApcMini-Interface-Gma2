@@ -1,0 +1,60 @@
+{
+  "credentials": {},
+  "controls": {
+    "buttons": [
+      {
+        "notation": 0,
+        "executor": "101",
+        "type": 3,
+        "page": 1,
+        "color": 1,
+        "colorName": "Green"
+      },
+      {
+        "notation": 1,
+        "executor": "102",
+        "type": 3,
+        "page": 1,
+        "color": 3,
+        "colorName": "Red"
+      },
+      {
+        "notation": 2,
+        "executor": "103",
+        "type": 3,
+        "page": 1,
+        "color": 5,
+        "colorName": "Yellow"
+      },
+      {
+        "notation": 5,
+        "executor": "166",
+        "type": 2,
+        "page": 1,
+        "color": 1,
+        "colorName": "Green"
+      },
+      {
+        "notation": 6,
+        "executor": "167",
+        "type": 1,
+        "page": 1,
+        "color": 3,
+        "colorName": "Red"
+      }
+    ],
+    "faders": [
+      {
+        "notation": 48,
+        "executor": "0",
+        "page": 0
+      },
+      {
+        "notation": 49,
+        "executor": "2",
+        "page": 0
+      }
+    ],
+    "knobs": []
+  }
+}

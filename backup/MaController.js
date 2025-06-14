@@ -3,7 +3,11 @@ import pkg from 'websocket';
 const { w3cwebsocket } = pkg;
 
 class MaController extends EventEmitter {
-  constructor({ websocketURL = 'ws://localhost:80/', wing = 1, testMode = false } = {}) {
+  constructor({
+    websocketURL = 'ws://localhost:80/',
+    wing = 1,
+    testMode = false,
+  } = {}) {
     super();
 
     this.websocketURL = websocketURL;
@@ -13,20 +17,8 @@ class MaController extends EventEmitter {
     this.session = 0;
     this.blackout = 0;
     this.ledMatrix = Array(90).fill(0);
-    this.pageIndex = 0;
-    this.pageIndex2 = 0;
 
     this.connectWebSocket();
-
-    setInterval(() => this.requestPlaybackUpdates(), 10000);
-
-    // 🔄 Ping a cada 10 segundos para manter sessão viva
-    setInterval(() => {
-      if (this.session > 0 && this.client?.readyState === 1) {
-        this.client.send(JSON.stringify({ session: this.session }));
-        console.log("[PING] 🔄 Sessão ping enviada para manter ativa.");
-      }
-    }, 10000);
   }
 
   connectWebSocket() {
@@ -41,12 +33,6 @@ class MaController extends EventEmitter {
     this.client.onclose = () => {
       console.log("❌ WebSocket desconectado");
       this.emit('disconnected');
-
-      // 🔁 Tentativa de reconexão
-      setTimeout(() => {
-        console.log("🔁 Reconectando WebSocket...");
-        this.connectWebSocket();
-      }, 3000);
     };
 
     this.client.onerror = err => {
@@ -63,12 +49,13 @@ class MaController extends EventEmitter {
 
   sendWS(data) {
     if (this.client && this.client.readyState === 1) {
-      console.log("[DEBUG] Enviando WS:", data);
       this.client.send(JSON.stringify(data));
     } else {
-      console.warn("🚫 WebSocket não está conectado (readyState:", this.client?.readyState, "). Dados:", data);
+      console.warn("🚫 WebSocket não está conectado");
     }
   }
+
+  // ==== MÉTODOS PARA COMANDOS GRANDMA2 ====
 
   sendPlaybackButton(execIndex, pageIndex, buttonId, pressed = true) {
     this.sendWS({
@@ -86,11 +73,6 @@ class MaController extends EventEmitter {
   }
 
   sendFader(execIndex, pageIndex, value) {
-    if (this.session <= 0) {
-      console.warn("[FADER] Sessão inválida. Fader não enviado.");
-      return;
-    }
-
     this.sendWS({
       requestType: "playbacks_userInput",
       execIndex,
@@ -103,11 +85,6 @@ class MaController extends EventEmitter {
   }
 
   sendCommand(cmd) {
-    if (this.session <= 0) {
-      console.warn("[COMMAND] Sessão inválida. Comando não enviado:", cmd);
-      return;
-    }
-
     this.sendWS({
       command: cmd,
       requestType: "command",
@@ -116,48 +93,53 @@ class MaController extends EventEmitter {
     });
   }
 
-  requestPlaybackUpdates() {
-    if (this.session > 0 && this.client?.readyState === 1) {
-      this.sendWS({
-        requestType: 'playbacks',
-        startIndex: [100],
-        itemsCount: [90],
-        pageIndex: this.pageIndex,
-        itemsType: [3],
-        view: 3,
-        execButtonViewMode: 2,
-        buttonsViewMode: 0,
-        session: this.session,
-        maxRequests: 1
-      });
+  // ==== SIMULAÇÃO DE INPUTS PARA TESTE ====
 
-      this.sendWS({
-        requestType: 'playbacks',
-        startIndex: [0],
-        itemsCount: [10],
-        pageIndex: this.pageIndex2,
-        itemsType: [2],
-        view: 2,
-        execButtonViewMode: 1,
-        buttonsViewMode: 0,
-        session: this.session,
-        maxRequests: 1
-      });
+  simulateNoteOn(note) {
+    const execIndex = this.mapNoteToExec(note);
+    if (execIndex !== null) {
+      this.sendPlaybackButton(execIndex, 0, 0, true);
+    }
+    if (note === 98) {
+      this.sendCommand('SpecialMaster 2.1 At 0');
+      this.blackout = 1;
     }
   }
 
-  handleWSMessage(msg) {
-    if (msg.forceLogin === true && msg.session !== undefined) {
-      this.session = msg.session;
-      this.sendWS({
-        requestType: 'login',
-        username: 'apcmini',
-        password: '2c18e486683a3db1e645ad8523223b72',
-        session: this.session,
-        maxRequests: 10
-      });
+  simulateNoteOff(note) {
+    const execIndex = this.mapNoteToExec(note);
+    if (execIndex !== null) {
+      this.sendPlaybackButton(execIndex, 0, 0, false);
     }
+    if (note === 98) {
+      this.sendCommand('SpecialMaster 2.1 At 100');
+      this.blackout = 0;
+    }
+  }
 
+  simulateCC(controller, value) {
+    const faderValue = value / 127;
+    const execIndex = this.mapControllerToExec(controller);
+    if (execIndex !== null) {
+      this.sendFader(execIndex, 0, faderValue);
+    }
+  }
+
+  mapNoteToExec(note) {
+    if (note >= 0 && note <= 63) {
+      return 100 + note;
+    }
+    return null;
+  }
+
+  mapControllerToExec(controller) {
+    if (controller >= 48 && controller <= 56) {
+      return 200 + (controller - 48);
+    }
+    return null;
+  }
+
+  handleWSMessage(msg) {
     if (msg.status === "server ready") {
       console.log("✅ SERVER READY");
     }
@@ -176,10 +158,6 @@ class MaController extends EventEmitter {
       console.log("🧾 Texto:", msg.text);
     }
 
-    if (msg.responseType === "playbacks") {
-      this.emit('ledUpdate', msg);
-    }
-
     this.emit('message', msg);
   }
 
@@ -188,5 +166,5 @@ class MaController extends EventEmitter {
     console.log("🔚 Encerrado");
   }
 }
-
 export default MaController;
+

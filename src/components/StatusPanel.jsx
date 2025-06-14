@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import ConfigService from '../Service/configService.js';
+import ConfigService from '../Service/ConfigService.js';
 export default function StatusPanel() {
   const [username, setUsername] = useState('apcmini');
   const [password, setPassword] = useState('remote');

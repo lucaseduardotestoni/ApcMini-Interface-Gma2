@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import ModalButtonConfig from './ModalButtonConfig';
 import ModalFaderConfig from './ModalFaderConfig';
 import ModalKnobConfig from './ModalKnobConfig';
-import ConfigService from '../Service/configService.js';
+import ConfigService from '../Service/ConfigService.js';
 
 const COLOR_MAP = {
   green: '#228B22',
@@ -12,21 +12,21 @@ const COLOR_MAP = {
   off: '#3a3a3a',
 };
 
+// As constantes SAVED_KNOB_COLOR e DEFAULT_KNOB_COLOR já foram sinalizadas para remoção,
+// pois a lógica de cor dos knobs agora é totalmente via CSS com classes e a variável --button-dynamic-color.
+// Não estão mais sendo usadas aqui.
+
 export default function ApcMiniGrid({ buttonLabels }) {
   const [editingButton, setEditingButton] = useState(null);
   const [editingFader, setEditingFader] = useState(null);
   const [editingKnob, setEditingKnob] = useState(null);
   const [buttonData, setButtonData] = useState([]);
+  const [knobData, setKnobData] = useState([]);
 
- 
-
-  // Use useEffect para carregar ao montar e quando quiser atualizar
   async function loadButtonConfig() {
     try {
-      const data = await ConfigService.getConfig();
-      const incoming = Array.isArray(data?.controls?.buttons)
-        ? data.controls.buttons
-        : [];
+      const data = await ConfigService.getButtons();
+      const incoming = Array.isArray(data) ? data : [];
       const filled = Array.from({ length: 64 }, (_, idx) => {
         const found = incoming.find(b => b.notation === idx);
         return found
@@ -35,7 +35,7 @@ export default function ApcMiniGrid({ buttonLabels }) {
       });
       setButtonData(filled);
     } catch (err) {
-      console.error('Erro ao carregar configurações:', err);
+      console.error('Erro ao carregar configurações de botões:', err);
       const fallback = Array.from({ length: 64 }, (_, idx) => ({
         notation: idx,
         colorName: 'Off',
@@ -44,15 +44,28 @@ export default function ApcMiniGrid({ buttonLabels }) {
     }
   }
 
+  async function loadKnobConfig() {
+    try {
+      const data = await ConfigService.getKnobs();
+      console.log("passei")
+      const incoming = Array.isArray(data) ? data : [];
+      console.log(data)
+      setKnobData(incoming);
+    } catch (err) {
+      console.error('Erro ao carregar configurações de knobs:', err);
+      setKnobData([]);
+    }
+  }
+
   useEffect(() => {
     loadButtonConfig();
+    loadKnobConfig();
   }, []);
 
   function getColorHex(colorName) {
     return COLOR_MAP[(colorName || 'off').toLowerCase()] || COLOR_MAP.off;
   }
 
-  // Se buttonData não tiver 64 itens, monta default
   const displayData = buttonData.length === 64
     ? buttonData
     : Array.from({ length: 64 }, (_, idx) => ({
@@ -60,12 +73,11 @@ export default function ApcMiniGrid({ buttonLabels }) {
         colorName: 'Off',
       }));
 
-  // Monta o grid invertendo as linhas (B0 no topo esquerdo, B63 embaixo direito)
   const gridRows = [];
   for (let row = 0; row < 8; row++) {
     const start = row * 8;
     const end = start + 8;
-    gridRows.unshift(displayData.slice(start, end)); // unshift inverte as linhas
+    gridRows.unshift(displayData.slice(start, end));
   }
 
   return (
@@ -75,12 +87,25 @@ export default function ApcMiniGrid({ buttonLabels }) {
           ? buttonLabels[btn.notation]
           : `B${btn.notation}`;
 
+        // ------ MUDANÇAS AQUI PARA OS BOTÕES -------
+        const buttonColor = getColorHex(btn.colorName);
+
+        // Determina se o botão deve ter a classe 'led'
+        // Ele estará "aceso" se a cor não for a cor de "off"
+        const isButtonLed = btn.colorName.toLowerCase() !== 'off';
+
+        // Constrói a string de classes: "button" + " led" (se estiver aceso)
+        const buttonClasses = `button ${isButtonLed ? 'led' : ''}`;
+
         return (
           <div
             key={btn.notation}
-            className="button"
+            className={buttonClasses} // <--- Aplica a classe condicionalmente
             data-index={baseLabel}
-            style={{ backgroundColor: getColorHex(btn.colorName) }}
+            style={{
+              backgroundColor: buttonColor, // Mantém a cor de fundo inline
+              '--button-dynamic-color': buttonColor // <--- DEFINE A VARIÁVEL CSS AQUI
+            }}
             onClick={() => setEditingButton(btn.notation)}
           >
             {baseLabel}
@@ -89,15 +114,21 @@ export default function ApcMiniGrid({ buttonLabels }) {
       })}
 
       <div className="knobs-row">
-        {Array.from({ length: 8 }).map((_, i) => {
+        {Array.from({ length: 8}).map((_, i) => {
           const knobIndex = 64 + i;
+          const hasSavedData = knobData.some(k => k.notation === knobIndex);
+
+          const knobClassName = `knob ${hasSavedData ? 'saved' : ''}`;
+
           return (
             <div
               key={knobIndex}
               className="knob-container"
               onClick={() => setEditingKnob(knobIndex)}
             >
-              <div className="knob"></div>
+              <div
+                className={knobClassName}
+              ></div>
             </div>
           );
         })}
@@ -131,17 +162,20 @@ export default function ApcMiniGrid({ buttonLabels }) {
       {editingButton !== null && (
         <ModalButtonConfig
           buttonIndex={editingButton}
-          // Passa o objeto completo para o modal, caso queira usar colorName/tipo
           buttonConfig={displayData.find(b => b.notation === editingButton)}
           onClose={() => setEditingButton(null)}
-          onUpdateButtons={loadButtonConfig} // Passe para atualizar após salvar
+          onUpdateButtons={loadButtonConfig}
         />
       )}
       {editingFader !== null && (
         <ModalFaderConfig faderIndex={editingFader} onClose={() => setEditingFader(null)} />
       )}
       {editingKnob !== null && (
-        <ModalKnobConfig knobIndex={editingKnob} onClose={() => setEditingKnob(null)} />
+        <ModalKnobConfig
+          knobIndex={editingKnob}
+          onClose={() => setEditingKnob(null)}
+          onUpdateKnobs={loadKnobConfig}
+        />
       )}
     </div>
   );

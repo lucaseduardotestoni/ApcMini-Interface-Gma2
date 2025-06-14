@@ -49,9 +49,9 @@
 .modal-content button:hover {
   background-color: #666;
 }
-form input{
-      width: calc(100%);
-}
 button{
   margin: 0 5px;
+}
+form input[type="number"] {
+width: calc(96%);
 }

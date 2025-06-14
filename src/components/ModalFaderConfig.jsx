@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import ConfigService from '../Service/configService';
+import ConfigService from '../Service/ConfigService';
 import './styles/modal.css';
 
 export default function ModalFaderConfig({ faderIndex, onClose }) {
@@ -17,11 +17,12 @@ export default function ModalFaderConfig({ faderIndex, onClose }) {
         setPage('0');
       }
     };
+    
     loadFaderConfig();
   }, [faderIndex]);
   const handleSave = async () => {
     const faderAlterado = {
-      index: faderIndex,
+      notation: faderIndex,
       executor,
       page: parseInt(page, 10) || 0
     };
@@ -37,13 +38,13 @@ export default function ModalFaderConfig({ faderIndex, onClose }) {
       console.error(err);
     }
   };
-  
+
   return (
     <div className="modal" id="faderConfigModal">
       <div className="modal-content">
         <h2>Configurar fader {faderIndex}</h2>
 
-        <form>
+        <form onSubmit={e => { e.preventDefault(); handleSave(); }}>
           <label>
             Executor:
             <input
@@ -53,7 +54,6 @@ export default function ModalFaderConfig({ faderIndex, onClose }) {
               onChange={e => setExecutor(e.target.value)}
             />
           </label>
-          <br />
           <label>
             Página:
             <input
@@ -64,9 +64,9 @@ export default function ModalFaderConfig({ faderIndex, onClose }) {
               onChange={e => setPage(e.target.value)}
             />
           </label>
+          <button type="submit">Salvar</button>
+          <button type="button" onClick={onClose}>Fechar</button>
         </form>
-        <button onClick={handleSave}>Salvar</button>
-        <button onClick={onClose}>Fechar</button>
       </div>
     </div>
   );
