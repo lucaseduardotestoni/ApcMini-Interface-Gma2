@@ -1,5 +1,6 @@
 import express from 'express';
-import { MidiService } from '../Services/MidiService.js';
+import MidiService from '../Service/MidiService.js';
+
 const router = express.Router();
 
 router.get('/api/statusMidi', (req, res) => {

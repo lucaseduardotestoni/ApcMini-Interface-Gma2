@@ -1,4 +1,4 @@
-// === MidiController.js atualizado ===
+
 import fs from 'fs';
 import easymidi from 'easymidi';
 import path from 'path';
@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-class ApcMiniController {
+class MidiService {
   constructor(configPath = path.join(__dirname, '../Model/config.json')) {
     this.configPath = configPath;
     this.mapping = {
@@ -144,4 +144,4 @@ class ApcMiniController {
   }
 }
 
-export default ApcMiniController;
+export default MidiService;
