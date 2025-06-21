@@ -19,10 +19,14 @@ class ApcMiniController {
     this.output = null;
     this.pressCounts = {}; // para controle de LED por clique
   }
+  
+  static isConnected(deviceName) {
+    return easymidi.getOutputs().includes(deviceName) && easymidi.getInputs().includes(deviceName);
+  }
 
-  carregarBanco() {
+  async carregarBanco() {
     try {
-      this.limparLed();
+      await this.limparLed();
       const data = fs.readFileSync(this.configPath, 'utf8');
       const json = JSON.parse(data);
 
@@ -88,7 +92,6 @@ class ApcMiniController {
     // Substituído pela lógica externa (em teste.js)
   }
 
-
   handleMidiMessage(type, note, velocity) {
     this.onNote(note, velocity, type);
     // Botões normais (0 a 63)
@@ -129,7 +132,7 @@ class ApcMiniController {
   }
 
 
-  limparLed() {
+  async limparLed() {
     if (!this.output) {
       console.warn('Output MIDI não está conectado.');
       return;
