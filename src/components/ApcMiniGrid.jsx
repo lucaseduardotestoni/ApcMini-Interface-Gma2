@@ -132,6 +132,7 @@ export default function ApcMiniGrid({ buttonLabels }) {
             </div>
           );
         })}
+        <div className="blackout"></div>
       </div>
 
       <div className="fader-row">

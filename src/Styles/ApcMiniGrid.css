@@ -199,7 +199,7 @@ form input[type="password"]:focus {
 }
 
 .button.led {
-     box-shadow: 0 0 10px 1px var(--button-dynamic-color);
+    box-shadow: 0 0 10px 1px var(--button-dynamic-color);
 }
 
 /* Posicionamento da linha dos knobs */
@@ -209,7 +209,7 @@ form input[type="password"]:focus {
     grid-row: 9;
     /* Coloca na 9ª linha (abaixo dos 64 botões) */
     display: grid;
-    grid-template-columns: repeat(8, 50px);
+    grid-template-columns: repeat(9, 50px);
     grid-gap: 8px;
     justify-content: space-around;
     padding-top: 15px;
@@ -295,21 +295,26 @@ form input[type="password"]:focus {
 
 .control-button {
     width: 20px;
-    /* Largura padrão dos botões do APC */
     height: 20px;
-    /* Altura padrão para ficarem quadrados */
-    background: #aaaaaa;
-    /* Cor azul destacada como na imagem */
-    border-radius: 6px;
-    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.4);
-
-    transition: background-color 0.1s, box-shadow 0.1s;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 0.8em;
-    color: #fff;
+    background: linear-gradient(to bottom, #505050, #303030);
+    border-radius: 50%;
+    border: 1px solid #444;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.05);
     /* Cor do texto, se tiver */
+}
+
+.blackout {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    background: #aaaaaa;
+    border-radius: 6px;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.4);
+    transition: background-color 0.1s, box-shadow 0.1s;
+    margin-left: 14px;
 }
 
 .control-button.led {
