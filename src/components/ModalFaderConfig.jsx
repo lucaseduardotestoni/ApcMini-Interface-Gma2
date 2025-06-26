@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import ConfigService from '../Service/ConfigService';
+import FaderService from '../Service/faderService.js';
 import './styles/modal.css';
 
 export default function ModalFaderConfig({ faderIndex, onClose }) {
@@ -9,7 +9,7 @@ export default function ModalFaderConfig({ faderIndex, onClose }) {
   useEffect(() => {
     const loadFaderConfig = async () => {
       try {
-        const data = await ConfigService.getFader(faderIndex);
+        const data = await FaderService.getFader(faderIndex);
         setExecutor(data.executor ?? '1');
         setPage(data.page !== undefined ? String(data.page) : '0');
       } catch (err) {
@@ -27,7 +27,7 @@ export default function ModalFaderConfig({ faderIndex, onClose }) {
       page: parseInt(page, 10) || 0
     };
     try {
-      const result = await ConfigService.saveFaderConfig(faderAlterado);
+      const result = await FaderService.saveFaderConfig(faderAlterado);
       if (result && result.message && result.message.includes('sucesso')) {
         onClose();
       } else {

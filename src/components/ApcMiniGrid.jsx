@@ -3,7 +3,9 @@ import { useState, useEffect } from 'react';
 import ModalButtonConfig from './ModalButtonConfig';
 import ModalFaderConfig from './ModalFaderConfig';
 import ModalKnobConfig from './ModalKnobConfig';
-import ConfigService from '../Service/ConfigService.js';
+import ButtonService from '../Service/buttonService.js';
+import FaderService from '../Service/faderService.js';
+import KnobService from '../Service/knobService.js';
 
 const COLOR_MAP = {
   green: '#228B22',
@@ -25,7 +27,7 @@ export default function ApcMiniGrid({ buttonLabels }) {
 
   async function loadButtonConfig() {
     try {
-      const data = await ConfigService.getButtons();
+      const data = await ButtonService.getButtons();
       const incoming = Array.isArray(data) ? data : [];
       const filled = Array.from({ length: 64 }, (_, idx) => {
         const found = incoming.find(b => b.notation === idx);
@@ -46,10 +48,8 @@ export default function ApcMiniGrid({ buttonLabels }) {
 
   async function loadKnobConfig() {
     try {
-      const data = await ConfigService.getKnobs();
-      console.log("passei")
+      const data = await KnobService.getKnobs();
       const incoming = Array.isArray(data) ? data : [];
-      console.log(data)
       setKnobData(incoming);
     } catch (err) {
       console.error('Erro ao carregar configurações de knobs:', err);
@@ -142,7 +142,10 @@ export default function ApcMiniGrid({ buttonLabels }) {
               key={faderIndex}
               className="fader"
               data-index={`F${faderIndex}`}
-              onClick={() => setEditingFader(faderIndex)}
+              onClick={() => {
+                if (faderIndex !== 55) setEditingFader(faderIndex);
+              }}
+              style={faderIndex === 55 ? { pointerEvents: 'none', opacity: 0.5 } : {}}
             >
               <div className="fader-track">
                 <div className="fader-thumb"></div>

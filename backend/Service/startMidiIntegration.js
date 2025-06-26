@@ -2,11 +2,11 @@
 
 import MidiService from './MidiService.js';
 import faderService from './faderService.js';
-import maService from './maService.js';
+import MaController from './MaServiceWeb.js'; // 🔧 Import correto
 
 export default async function startMidiIntegration() {
   const controller = new MidiService();
-  const maController = maService.getMaController();
+  const maController = MaController.getInstance(); // 🔧 Use getInstance()
 
   // Sessão iniciada
   maController.on('session', (session) => {
@@ -50,7 +50,11 @@ export default async function startMidiIntegration() {
       return;
     }
 
-    if (maController.session <= 0) await maService.esperarSessao();
+    if (maController.session <= 0) {
+      // 🔧 Aguarda a sessão estar pronta
+      console.log("⏳ Aguardando sessão...");
+      return;
+    }
 
     if (type === 'on') controller.handleMidiMessage('noteon', note, velocity);
     if (type === 'off') controller.handleMidiMessage('noteoff', note, velocity);
@@ -77,9 +81,7 @@ export default async function startMidiIntegration() {
   };
 
   try {
-    await controller.conectarDispositivoMidi();
-    controller.limparLed();
-    await controller.carregarBanco();
+    controller.conectarDispositivoMidi();
   } catch (err) {
     console.error('Erro ao inicializar controlador MIDI:', err.message);
   }

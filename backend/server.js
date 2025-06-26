@@ -14,5 +14,5 @@ registerRoutes(app);
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
-  startMidiIntegration(); // Inicia controle MIDI junto com o backend
+  startMidiIntegration();
 });

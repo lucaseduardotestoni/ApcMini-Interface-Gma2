@@ -1,4 +1,3 @@
-
 import fs from 'fs';
 import easymidi from 'easymidi';
 import path from 'path';
@@ -19,8 +18,10 @@ class MidiService {
     this.output = null;
     this.pressCounts = {}; // para controle de LED por clique
   }
-  
-  static isConnected(deviceName) {
+   static isConnected(deviceName) {
+    return easymidi.getOutputs().includes(deviceName) && easymidi.getInputs().includes(deviceName);
+  }
+  isConnected(deviceName) {
     return easymidi.getOutputs().includes(deviceName) && easymidi.getInputs().includes(deviceName);
   }
 
@@ -58,90 +59,113 @@ class MidiService {
     });
   }
 
-  conectarDispositivoMidi() {
-    if (
-      easymidi.getOutputs().includes(this.deviceName) &&
-      easymidi.getInputs().includes(this.deviceName)
-    ) {
-      this.output = new easymidi.Output(this.deviceName);
-      this.input = new easymidi.Input(this.deviceName);
+  conectarDispositivoMidi(intervalMs = 2000) {
+    this.lastStatus = false;
+    try {
+      
+    
+    this._intervalId = setInterval(async () => {
+      const connected = this.isConnected(this.deviceName);
 
-      console.log(`Conectado ao dispositivo: ${this.deviceName}`);
+      if (connected && !this.lastStatus) {
+        console.log(`Conectado ao dispositivo: ${this.deviceName}`);
 
-      this.input.on('noteon', (msg) => {
-        this.onNote(msg.note, msg.velocity, 'on');
-      });
+        // Feche conexões antigas, se existirem
+        if (this.output) this.output.close();
+        if (this.input) this.input.close();
 
-      this.input.on('noteoff', (msg) => {
-        this.onNote(msg.note, msg.velocity, 'off');
-      });
+        // Crie novas conexões
+        this.output = new easymidi.Output(this.deviceName);
+        this.input = new easymidi.Input(this.deviceName);
 
-      this.input.on('cc', (msg) => {
-        this.onFader(msg.controller, msg.value);
-      });
-    } else {
-      throw new Error(`Dispositivo MIDI "${this.deviceName}" não encontrado nos inputs ou outputs.`);
-    }
-  }
+        // Adicione listeners
+        this.input.on('noteon', (msg) => {
+          this.onNote(msg.note, msg.velocity, 'on');
+        });
+        this.input.on('noteoff', (msg) => {
+          this.onNote(msg.note, msg.velocity, 'off');
+        });
+        this.input.on('cc', (msg) => {
+          this.onFader(msg.controller, msg.value);
+        });
 
-  onNote(note, velocity, type) {
-    // Substituído pela lógica externa (em teste.js)
-  }
+        await this.limparLed();
+        await this.carregarBanco();
 
-  onFader(controller, value) {
-    // Substituído pela lógica externa (em teste.js)
-  }
-
-  handleMidiMessage(type, note, velocity) {
-    this.onNote(note, velocity, type);
-    // Botões normais (0 a 63)
-    if (type === 'noteon' && note >= 0 && note <= 63) {
-      this.pressCounts[note] = (this.pressCounts[note] || 0) + 1;
-      const btn = this.mapping.buttons.find(b => b.notation === note);
-
-      if (this.pressCounts[note] === 1) {
-        this.setLed(note,
-          btn?.color === 1 ? 2 :
-            btn?.color === 3 ? 4 :
-              btn?.color === 5 ? 6 :  
-                btn?.color ?? 1
-        );
-      } else if (this.pressCounts[note] === 2) {
-        this.setLed(note, btn?.color ?? 1);
-        this.pressCounts[note] = 0;
+      } else if (!connected && this.lastStatus) {
+        // Desconectou!
+        console.log('APC MINI desconectada!');
+        if (this.output) this.output.close();
+        if (this.input) this.input.close();
+        this.output = null;
+        this.input = null;
       }
 
-    } else if (type === 'noteon' && note >= 64 && note <= 71) {
-      // Botões tipo "flash"
-      this.pressCounts[note] = (this.pressCounts[note] || 0) + 1;
-
-      if (this.pressCounts[note] === 1) {
-        this.setLed(note, 2); // cor de flash pressionado
-      } else if (this.pressCounts[note] === 2) {
-        this.setLed(note, 1); // cor padrão
-        this.pressCounts[note] = 0;
-      }
-
-    } else if (type === 'noteoff') {
-      // Ao soltar o botão flash, volta para a cor padrão
-      const btn = this.mapping.buttons.find(b => b.notation === note);
-      if (btn) {
-        this.setLed(note, btn.color ?? 1); // volta para a cor original
-      }
+      this.lastStatus = connected;
+    }, intervalMs);
+    } catch (error) {
+      console.error('Erro ao conectar dispositivo MIDI:', error.message);
     }
   }
 
+onNote(note, velocity, type) {
+  // Substituído pela lógica externa (em teste.js)
+}
 
-  async limparLed() {
-    if (!this.output) {
-      console.warn('Output MIDI não está conectado.');
-      return;
+onFader(controller, value) {
+  // Substituído pela lógica externa (em teste.js)
+}
+
+handleMidiMessage(type, note, velocity) {
+  this.onNote(note, velocity, type);
+  // Botões normais (0 a 63)
+  if (type === 'noteon' && note >= 0 && note <= 63) {
+    this.pressCounts[note] = (this.pressCounts[note] || 0) + 1;
+    const btn = this.mapping.buttons.find(b => b.notation === note);
+
+    if (this.pressCounts[note] === 1) {
+      this.setLed(note,
+        btn?.color === 1 ? 2 :
+          btn?.color === 3 ? 4 :
+            btn?.color === 5 ? 6 :
+              btn?.color ?? 1
+      );
+    } else if (this.pressCounts[note] === 2) {
+      this.setLed(note, btn?.color ?? 1);
+      this.pressCounts[note] = 0;
     }
-    for (let note = 0; note <= 98; note++) {
-      if (note >= 48 && note <= 56) continue;
-      this.setLed(note, 0);
+
+  } else if (type === 'noteon' && note >= 64 && note <= 71) {
+    // Botões tipo "flash"
+    this.pressCounts[note] = (this.pressCounts[note] || 0) + 1;
+
+    if (this.pressCounts[note] === 1) {
+      this.setLed(note, 2); // cor de flash pressionado
+    } else if (this.pressCounts[note] === 2) {
+      this.setLed(note, 1); // cor padrão
+      this.pressCounts[note] = 0;
+    }
+
+  } else if (type === 'noteoff') {
+    // Ao soltar o botão flash, volta para a cor padrão
+    const btn = this.mapping.buttons.find(b => b.notation === note);
+    if (btn) {
+      this.setLed(note, btn.color ?? 1); // volta para a cor original
     }
   }
+}
+
+
+async limparLed() {
+  if (!this.output) {
+    console.warn('Output MIDI não está conectado.');
+    return;
+  }
+  for (let note = 0; note <= 98; note++) {
+    if (note >= 48 && note <= 56) continue;
+    this.setLed(note, 0);
+  }
+}
 }
 
 export default MidiService;

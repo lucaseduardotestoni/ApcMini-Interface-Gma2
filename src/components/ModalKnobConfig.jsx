@@ -1,6 +1,6 @@
 import './styles/modal.css';
 import { useState,useEffect } from 'react';
-import ConfigService from '../Service/ConfigService.js';
+import KnobService from '../Service/knobService.js';
 
 export default function ModalKnobConfig({ knobIndex, onClose,onUpdateKnobs  }) {
   const [executor, setExecutor] = useState('1');
@@ -12,7 +12,7 @@ export default function ModalKnobConfig({ knobIndex, onClose,onUpdateKnobs  }) {
    const loadKnobConfig = async () => {
     setError(null); // Limpa erros anteriores ao carregar
     try {
-      const data = await ConfigService.getKnob(knobIndex); // Busca os dados do knob
+      const data = await KnobService.getKnob(knobIndex); // Busca os dados do knob
 
       // Lógica para determinar se o knob já tem dados significativos salvos.
       // Consideramos "salvo" se algum dos campos (type, executor, page) for diferente do seu valor padrão.
@@ -48,7 +48,7 @@ export default function ModalKnobConfig({ knobIndex, onClose,onUpdateKnobs  }) {
       page: parseInt(page, 10) || 0
     };
     try {
-      const result = await ConfigService.saveKnobConfig(knobAlterado); // Salva os dados no backend
+      const result = await KnobService.saveKnobConfig(knobAlterado); // Salva os dados no backend
 
       if (result && result.message && result.message.includes('sucesso')) {
         // --- AQUI ESTÁ A CHAVE: Chama a função de atualização do ApcMiniGrid ---

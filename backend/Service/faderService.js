@@ -1,9 +1,10 @@
 // services/faderService.js
+
 const NS_PER_SEC = 1e9;
 const faderTime = Array(128).fill(process.hrtime());
 const faderValueMem = Array(128).fill(0);
 
-const faderValue = [...Array(128)].map((_, i) => i / 127); // Simples interpolação de 0 a 1
+const faderValue = Array.from({ length: 128 }, (_, i) => i / 127);
 
 function shouldSendFader(controllerNumber, value) {
   const now = process.hrtime();

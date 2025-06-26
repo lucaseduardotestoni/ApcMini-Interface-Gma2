@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import './styles/modal.css';
-import ConfigService from '../Service/ConfigService.js';  
+import ButtonService from '../Service/buttonService.js';
 
 export default function ModalButtonConfig({ buttonIndex, onClose, onUpdateButtons }) {
   const [selectedColor, setSelectedColor] = useState('Off');
@@ -10,7 +10,7 @@ export default function ModalButtonConfig({ buttonIndex, onClose, onUpdateButton
 
    const loadButtonConfig = async () => {
     try {
-      const data = await ConfigService.getButton(buttonIndex);
+      const data = await ButtonService.getButton(buttonIndex);
       setExecutor(data.executor ?? '101');
       setTipo(data.type !== undefined ? String(data.type) : '1');
       setPage(data.page !== undefined ? String(data.page) : '1');
@@ -42,7 +42,7 @@ export default function ModalButtonConfig({ buttonIndex, onClose, onUpdateButton
       color: selectedColor
     };
    try {
-    const result = await ConfigService.saveButtonConfig(botaoAlterado);
+    const result = await ButtonService.saveButtonConfig(botaoAlterado);
     // Verifica se a resposta indica sucesso
     if (result && result.message && result.message.includes('sucesso')) {
       if (onUpdateButtons) onUpdateButtons();

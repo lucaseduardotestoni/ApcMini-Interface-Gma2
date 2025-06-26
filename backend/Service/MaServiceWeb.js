@@ -1,14 +1,31 @@
 import EventEmitter from 'events';
 import pkg from 'websocket';
 const { w3cwebsocket } = pkg;
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const configPath = path.join(__dirname, '../Model/config.json');
+const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
 class MaController extends EventEmitter {
   constructor({ websocketURL = 'ws://localhost:80/', wing = 1, testMode = false } = {}) {
-    super();
+    // 🔧 Singleton - retorna a instância existente se já existe
+    if (MaController.instance) {
+      console.log("♻️ Reutilizando instância existente do MaController");
+      return MaController.instance;
+    }
 
+    super();
+    MaController.instance = this;
+    
     this.websocketURL = websocketURL;
     this.wing = wing;
     this.testMode = testMode;
+    this.shouldReconnect = true;
 
     this.session = 0;
     this.blackout = 0;
@@ -16,20 +33,63 @@ class MaController extends EventEmitter {
     this.pageIndex = 0;
     this.pageIndex2 = 0;
 
+    this.playbackInterval = null;
+    this.pingInterval = null;
+    this.reconnectTimeout = null;
+
     this.connectWebSocket();
+    this.startIntervals();
 
-    setInterval(() => this.requestPlaybackUpdates(), 10000);
+    console.log("🆕 Nova instância do MaController criada");
+  }
 
-    // 🔄 Ping a cada 10 segundos para manter sessão viva
-    setInterval(() => {
+  static getInstance(options = {}) {
+    if (!MaController.instance) {
+      new MaController(options);
+    }
+    return MaController.instance;
+  }
+
+  static resetInstance() {
+    if (MaController.instance) {
+      MaController.instance.close();
+      MaController.instance = null;
+    }
+  }
+
+  startIntervals() {
+    this.clearIntervals();
+
+    this.playbackInterval = setInterval(() => this.requestPlaybackUpdates(), 10000);
+    
+    this.pingInterval = setInterval(() => {
       if (this.session > 0 && this.client?.readyState === 1) {
         this.client.send(JSON.stringify({ session: this.session }));
-        console.log("[PING] 🔄 Sessão ping enviada para manter ativa.");
       }
     }, 10000);
   }
 
+  clearIntervals() {
+    if (this.playbackInterval) {
+      clearInterval(this.playbackInterval);
+      this.playbackInterval = null;
+    }
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+  }
+
   connectWebSocket() {
+    if (this.client?.readyState === 1) {
+      console.log("🔌 WebSocket já está conectado");
+      return;
+    }
+
     this.client = new w3cwebsocket(this.websocketURL);
 
     this.client.onopen = () => {
@@ -42,11 +102,14 @@ class MaController extends EventEmitter {
       console.log("❌ WebSocket desconectado");
       this.emit('disconnected');
 
-      // 🔁 Tentativa de reconexão
-      setTimeout(() => {
-        console.log("🔁 Reconectando WebSocket...");
-        this.connectWebSocket();
-      }, 3000);
+      if (this.shouldReconnect) {
+        this.reconnectTimeout = setTimeout(() => {
+          console.log("🔁 Reconectando WebSocket...");
+          this.connectWebSocket();
+        }, 3000);
+      } else {
+        console.log("🚫 Reconexão automática desabilitada.");
+      }
     };
 
     this.client.onerror = err => {
@@ -146,13 +209,72 @@ class MaController extends EventEmitter {
     }
   }
 
+  isMAConnected() {
+    if (!this.client) {
+      console.warn("Cliente WebSocket não inicializado.");
+      return { connected: false, session: null };
+    }
+
+    const conectado = this.client.readyState === 1;
+    const sessaoValida = this.session && this.session > 0;
+
+    if (conectado && sessaoValida) {
+      return { connected: true, session: this.session };
+    } else {
+      return { connected: false, session: null };
+    }
+  }
+
+  close() {
+    console.log("🔌 Fechando conexão manualmente...");
+    this.shouldReconnect = false; // 🔧 Impede reconexão automática
+
+    this.clearIntervals();
+
+    if (this.client?.readyState === 1) {
+      // 1. Enviar requisição de fechamento
+      this.client.send(JSON.stringify({
+        requestType: "close",
+        session: this.session,
+        maxRequests: 1
+      }));
+
+      // 2. Finalizar sessão interna
+      this.session = 0;
+
+      // 3. Fechar WebSocket
+      this.client.close();
+
+      console.log("🔚 Conexão com a MA encerrada.");
+    } else {
+      console.warn("🚫 WebSocket já estava desconectado.");
+    }
+
+    this.removeAllListeners();
+    
+    // 🔧 Remove a instância singleton
+    MaController.instance = null;
+  }
+
+  // 🔧 Método para permitir reconexão novamente (se necessário)
+  enableReconnection() {
+    this.shouldReconnect = true;
+    console.log("✅ Reconexão automática habilitada.");
+  }
+
+  // 🔧 Método para reconectar manualmente
+  reconnect() {
+    this.shouldReconnect = true;
+    this.connectWebSocket();
+  }
+
   handleWSMessage(msg) {
     if (msg.forceLogin === true && msg.session !== undefined) {
       this.session = msg.session;
       this.sendWS({
         requestType: 'login',
-        username: 'apcmini',
-        password: '2c18e486683a3db1e645ad8523223b72',
+        username: config.credentials.username,
+        password: config.credentials.password,
         session: this.session,
         maxRequests: 10
       });
@@ -182,11 +304,9 @@ class MaController extends EventEmitter {
 
     this.emit('message', msg);
   }
-
-  close() {
-    if (this.client) this.client.close();
-    console.log("🔚 Encerrado");
-  }
 }
+
+// 🔧 Inicializa como null
+MaController.instance = null;
 
 export default MaController;

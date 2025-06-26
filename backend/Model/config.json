@@ -1,5 +1,8 @@
 {
-  "credentials": {},
+  "credentials": {
+    "username": "apcmini",
+    "password": "2c18e486683a3db1e645ad8523223b72"
+  },
   "controls": {
     "buttons": [
       {
@@ -55,6 +58,13 @@
         "page": 0
       }
     ],
-    "knobs": []
+    "knobs": [
+      {
+        "notation": 64,
+        "executor": "101",
+        "type": "2",
+        "page": 0
+      }
+    ]
   }
 }
